@@ -136,7 +136,7 @@ fn name_of_type(typ: &Type) -> Ident {
 /// ** Types differ only in generic parameters
 /// ** Multiple types with the same base name are imported from different modules
 #[proc_macro_attribute]
-pub fn make_iter(_attr: TokenStream, module: TokenStream) -> TokenStream {
+pub fn make_items(_attr: TokenStream, module: TokenStream) -> TokenStream {
     let mut output = TokenStream::new().into();
 
     if let Ok(

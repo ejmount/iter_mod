@@ -3,7 +3,7 @@
 This crate provides an macro that generates an array of the static and constant items in a given module. To demonstrate with a slightly modified [example from the reference](https://doc.rust-lang.org/reference/items/constant-items.html):
 
 ```rust
-#[iter_mod::make_iter(name="iter")]
+#[iter_mod::make_items]
 mod example {
     const BIT1: u32 = 1 << 0;
     const BIT2: u32 = 1 << 1;
