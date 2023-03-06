@@ -30,7 +30,7 @@ fn append_iterator(items: &mut Vec<Item>) {
 
     let filled_enum: syn::ItemEnum = parse_quote! {
         #[non_exhaustive]
-        pub(super) enum Item {
+        pub enum Item {
             #(#filled_variants,)*
         }
     };
@@ -38,7 +38,7 @@ fn append_iterator(items: &mut Vec<Item>) {
     let item_values = item_exprs.into_iter().map(create_item_reference);
 
     let list: syn::ItemStatic = parse_quote! {
-        pub(super) static ITEMS: &[(&'static str, Item)] = &[#(#item_values,)*];
+        pub static ITEMS: &[(&'static str, Item)] = &[#(#item_values,)*];
     };
 
     items.push(Item::Static(list));
@@ -128,7 +128,6 @@ fn name_of_type(typ: &Type) -> Ident {
 /// * An enum called `Item`, which has a variant for each unique type among the constant and static items in the module. It is marked `[non_exhaustive]` so that adding items in the future is not breaking.
 /// * An array called `ITEMS`, consisting of pairs of a `&'static str` denoting the name of the item, and a `Item` instance containing a reference to the value. The values are in source order.
 ///
-/// Both of these new items have a visibility of `pub(super)`.
 ///
 /// This currently has several caveats:
 /// * Not all possible types are supported - if you have a usecase that's not supported, please file a bug
