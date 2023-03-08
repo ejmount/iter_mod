@@ -4,15 +4,22 @@ use proc_macro::TokenStream;
 use quote::{format_ident, ToTokens};
 use syn::{parse_quote, Expr, Ident, Item, ItemMod, Type};
 
+#[derive(Clone, PartialEq, Eq)]
+enum ItemType {
+    Static,
+    Const,
+}
+
 #[derive(Clone)]
 struct MetaType {
     name: Ident,
     typ: Type,
     type_name: Ident,
     expr: Expr,
+    item_type: ItemType,
 }
 
-/// Given a module, append the array of item references to it
+/// Given a module, append the arrays of consts and statics to it
 fn append_iterator(items: &mut Vec<Item>) {
     let item_exprs: Vec<_> = items.iter().filter_map(get_metatype_for_item).collect();
 
@@ -24,25 +31,34 @@ fn append_iterator(items: &mut Vec<Item>) {
 
     let filled_variants = type_set.into_iter().map(|(name, typ)| -> syn::Variant {
         parse_quote! {
-            #name(&'static (#typ))
+            #name(#typ)
         }
     });
 
-    let filled_enum: syn::ItemEnum = parse_quote! {
+    let filled_enum = parse_quote! {
         #[non_exhaustive]
         pub enum Item {
             #(#filled_variants,)*
         }
     };
 
-    let item_values = item_exprs.into_iter().map(create_item_reference);
+    let (consts, statics): (Vec<_>, _) = item_exprs
+        .into_iter()
+        .partition(|mt| mt.item_type == ItemType::Const);
 
-    let list: syn::ItemStatic = parse_quote! {
-        pub static ITEMS: &[(&'static str, Item)] = &[#(#item_values,)*];
+    let consts_values = consts.into_iter().map(create_item_reference);
+    let static_values = statics.into_iter().map(create_item_reference);
+
+    let cons = parse_quote! {
+        pub const CONSTS: &[(&'static str, Item)] = &[#(#consts_values,)*];
+    };
+    let statik = parse_quote! {
+        pub static STATICS: &[(&'static str, Item)] = &[#(#static_values,)*];
     };
 
-    items.push(Item::Static(list));
-    items.push(Item::Enum(filled_enum));
+    items.push(cons);
+    items.push(statik);
+    items.push(filled_enum);
 }
 
 fn create_item_reference(mt: MetaType) -> syn::Expr {
@@ -59,18 +75,23 @@ fn create_item_reference(mt: MetaType) -> syn::Expr {
 }
 
 fn get_metatype_for_item(expr: &Item) -> Option<MetaType> {
-    let (name, typ) = match expr {
-        Item::Const(expr) => (&expr.ident, &expr.ty),
-        Item::Static(expr) => (&expr.ident, &expr.ty),
+    let (name, typ, item_type) = match expr {
+        Item::Const(expr) => (&expr.ident, *expr.ty.clone(), ItemType::Const),
+        Item::Static(expr) => (&expr.ident, *expr.ty.clone(), ItemType::Static),
         _ => return None,
     };
-    let type_name = name_of_type(typ);
-    let expr: Expr = parse_quote!(&(#name));
+    let type_name = name_of_type(&typ);
+    let expr: Expr = match expr {
+        Item::Const(_) => parse_quote!(#name),
+        Item::Static(_) => parse_quote!(&(#name)),
+        _ => unreachable!(),
+    };
     MetaType {
         name: name.clone(),
-        typ: *typ.clone(),
+        typ,
         type_name,
         expr,
+        item_type,
     }
     .into()
 }

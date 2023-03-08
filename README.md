@@ -23,22 +23,23 @@ mod example {
 }
 
 fn main() {
-    use example::ITEMS; 
+    use example::{STATICS, CONSTS}; 
     use example::Item; 
-    assert_eq!(ITEMS.len(), 5);
+    assert_eq!(CONSTS.len(), 5);
+    assert_eq!(STATICS.len(), 0);
 
-    let uints = ITEMS.iter().filter(|(_, b)| matches!(b, Item::U32(_))).count();
+    let uints = CONSTS.iter().filter(|(_, b)| matches!(b, Item::U32(_))).count();
     assert_eq!(uints, 2);
 
-    let uints = example::ITEMS.iter().filter(|(_, b)| matches!(b, Item::U32_2(_))).count();
+    let uints = example::CONSTS.iter().filter(|(_, b)| matches!(b, Item::U32_2(_))).count();
     assert_eq!(uints, 1);
 
-    let uints = example::ITEMS.iter().filter(|(_, b)| matches!(b, Item::BitsNStrings(_))).count();
+    let uints = example::CONSTS.iter().filter(|(_, b)| matches!(b, Item::BitsNStrings(_))).count();
     assert_eq!(uints, 1);
 
-    assert_eq!("STRING", ITEMS[3].0);
+    assert_eq!("STRING", CONSTS[3].0);
 
-    let example::Item::StrRef(&s) = ITEMS[3].1 else { panic!() };
+    let example::Item::StrRef(s) = CONSTS[3].1 else { panic!() };
     assert_eq!("bitstring", s);
 }
 ```
