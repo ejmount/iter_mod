@@ -26,14 +26,21 @@ fn append_iterator(items: &mut Vec<Item>) {
     let type_set: HashMap<_, _> = item_exprs
         .iter()
         .cloned()
-        .map(|mt| (mt.type_name, mt.typ))
+        .map(|mt| (mt.type_name, (mt.typ, mt.item_type)))
         .collect();
 
-    let filled_variants = type_set.into_iter().map(|(name, typ)| -> syn::Variant {
-        parse_quote! {
-            #name(#typ)
-        }
-    });
+    let filled_variants = type_set
+        .into_iter()
+        .map(|(name, (typ, item_type))| -> syn::Variant {
+            match item_type {
+                ItemType::Const => parse_quote! {
+                    #name(#typ)
+                },
+                ItemType::Static => parse_quote! {
+                    #name(&'static #typ)
+                },
+            }
+        });
 
     let filled_enum = parse_quote! {
         #[non_exhaustive]
@@ -145,16 +152,18 @@ fn name_of_type(typ: &Type) -> Ident {
     Ident::new(&name_str, name.span())
 }
 
-/// This attribute generates two additional items in the module it is applied to:
+/// This attribute generates three additional items in the module it is applied to:
 /// * An enum called `Item`, which has a variant for each unique type among the constant and static items in the module. It is marked `[non_exhaustive]` so that adding items in the future is not breaking.
-/// * An array called `ITEMS`, consisting of pairs of a `&'static str` denoting the name of the item, and a `Item` instance containing a reference to the value. The values are in source order.
-///
+/// * A const array called `CONSTS`, consisting of pairs of a `&'static str` denoting the name of the constant, and a `Item` instance containing the value. The values are in source order.
+/// * A static array called `STATICS`, which is similar to `CONSTS`, except that the `Item` instances contain *references* to the corresponding static value.
 ///
 /// This currently has several caveats:
 /// * Not all possible types are supported - if you have a usecase that's not supported, please file a bug
-/// * Faulty output may result from the type's base name being the same - use type aliases to distinguish the type names as seen by the macro. This can occur when:
+/// * Faulty output may result from distinct types' base name being the same - use type aliases to distinguish the type names as seen by the macro. This can occur when:
 /// ** Types differ only in generic parameters
 /// ** Multiple types with the same base name are imported from different modules
+/// * Complex expressions for an array's length may be incorrectly interpreted - define a new constant to avoid this
+/// ** Additionally, literal numbers used as an array length are embedded in the name of an enum variant, meaning changing the value is a breaking change
 #[proc_macro_attribute]
 pub fn make_items(_attr: TokenStream, module: TokenStream) -> TokenStream {
     let mut output = TokenStream::new().into();
