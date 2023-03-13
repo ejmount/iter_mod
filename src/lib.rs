@@ -23,6 +23,10 @@ struct MetaType {
 fn append_iterator(items: &mut Vec<Item>) {
     let item_exprs: Vec<_> = items.iter().filter_map(get_metatype_for_item).collect();
 
+    let const_count = item_exprs
+        .iter()
+        .filter(|mt| mt.item_type == ItemType::Const).count();
+
     let type_set: HashMap<_, _> = item_exprs
         .iter()
         .cloned()
@@ -57,7 +61,7 @@ fn append_iterator(items: &mut Vec<Item>) {
     let static_values = statics.into_iter().map(create_item_reference);
 
     let cons = parse_quote! {
-        pub const CONSTS: &[(&'static str, Item)] = &[#(#consts_values,)*];
+        pub const CONSTS: [(&'static str, Item); #const_count] = [#(#consts_values,)*];
     };
     let statik = parse_quote! {
         pub static STATICS: &[(&'static str, Item)] = &[#(#static_values,)*];
