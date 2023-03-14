@@ -2,7 +2,7 @@ use std::collections::HashMap;
 
 use proc_macro::TokenStream;
 use quote::{format_ident, ToTokens};
-use syn::{parse_quote, Expr, Ident, Item, ItemMod, Type};
+use syn::{parse_quote, Expr, Ident, Item, ItemMod, Lifetime, Type};
 
 #[derive(Clone, PartialEq, Eq)]
 enum ItemType {
@@ -25,7 +25,8 @@ fn append_iterator(items: &mut Vec<Item>) {
 
     let const_count = item_exprs
         .iter()
-        .filter(|mt| mt.item_type == ItemType::Const).count();
+        .filter(|mt| mt.item_type == ItemType::Const)
+        .count();
 
     let type_set: HashMap<_, _> = item_exprs
         .iter()
@@ -36,6 +37,14 @@ fn append_iterator(items: &mut Vec<Item>) {
     let filled_variants = type_set
         .into_iter()
         .map(|(name, (typ, item_type))| -> syn::Variant {
+            let typ = if let Type::Reference(mut typ) = typ {
+                let span = typ.and_token.span;
+                typ.lifetime = Some(Lifetime::new("'static", span));
+                Type::Reference(typ)
+            } else {
+                typ
+            };
+
             match item_type {
                 ItemType::Const => parse_quote! {
                     #name(#typ)
