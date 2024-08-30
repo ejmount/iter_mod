@@ -143,7 +143,7 @@ fn name_of_type(typ: &Type) -> Ident {
             let mutt = if typ.mutability.is_some() { "Mut" } else { "" };
             format_ident!("{inner_name}{mutt}Ptr")
         }
-        Type::Never(_) => format_ident!("Never"), // ! also isn't a valid variant name
+
         Type::Tuple(typ) => {
             if typ.elems.is_empty() {
                 format_ident!("Unit") // () is not a valid identifier for enum variants
@@ -157,8 +157,11 @@ fn name_of_type(typ: &Type) -> Ident {
                 format_ident!("{}", names.join(""))
             }
         }
+        Type::Slice(slice) => format_ident!("{}Slice", name_of_type(&(slice.elem))),
         Type::Reference(r) => format_ident!("{}Ref", name_of_type(&r.elem)),
-        _ => panic!("Unsupported type {:?}", typ.to_token_stream(),),
+        Type::Never(_) => unimplemented!("How did you make a Never item"),
+
+        _ => unimplemented!("Unsupported type {:?}", typ.to_token_stream(),),
     };
     let mut name_str = name.to_string();
     let (begin, _) = name_str.split_at_mut(1);
