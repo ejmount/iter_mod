@@ -181,19 +181,16 @@ fn name_of_type(typ: &Type) -> Ident {
 #[proc_macro_attribute]
 pub fn make_items(_attr: TokenStream, module: TokenStream) -> TokenStream {
     let mut output = TokenStream::new().into();
+    let Ok(mut module): Result<ItemMod, _> = syn::parse(module) else {
+        panic!("Item is not a module")
+    };
 
-    if let Ok(
-        m @ ItemMod {
-            content: Some((_, _)),
-            ..
-        },
-    ) = &mut syn::parse(module)
-    {
-        append_meta_arrays(&mut m.content.as_mut().unwrap().1);
-        m.to_tokens(&mut output);
-    } else {
-        panic!("Could not parse item as module");
-    }
+    let Some((_, items)) = &mut module.content else {
+        panic!("Can't apply this macro to inline modules")
+    };
+
+    append_meta_arrays(items);
+    module.to_tokens(&mut output);
 
     output.into()
 }
