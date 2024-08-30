@@ -23,19 +23,19 @@ mod example {
 }
 
 fn main() {
-    use example::{STATICS, CONSTS}; 
-    use example::Item; 
+    use example::{STATICS, CONSTS};
+    use example::Item;
     assert_eq!(CONSTS.len(), 5);
     assert_eq!(STATICS.len(), 0);
 
     let uints = CONSTS.iter().filter(|(_, b)| matches!(b, Item::U32(_))).count();
     assert_eq!(uints, 2);
 
-    let uints = example::CONSTS.iter().filter(|(_, b)| matches!(b, Item::U32_2(_))).count();
-    assert_eq!(uints, 1);
+    let pairs = example::CONSTS.iter().filter(|(_, b)| matches!(b, Item::U32_2(_))).count();
+    assert_eq!(pairs, 1);
 
-    let uints = example::CONSTS.iter().filter(|(_, b)| matches!(b, Item::BitsNStrings(_))).count();
-    assert_eq!(uints, 1);
+    let struct_values = example::CONSTS.iter().filter(|(_, b)| matches!(b, Item::BitsNStrings(_))).count();
+    assert_eq!(struct_values, 1);
 
     assert_eq!("STRING", CONSTS[3].0);
 

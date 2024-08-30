@@ -20,7 +20,7 @@ struct MetaType {
 }
 
 /// Given a module, append the arrays of consts and statics to it
-fn append_iterator(items: &mut Vec<Item>) {
+fn append_meta_arrays(items: &mut Vec<Item>) {
     let item_exprs: Vec<_> = items.iter().filter_map(get_metatype_for_item).collect();
 
     let const_count = item_exprs
@@ -137,6 +137,7 @@ fn name_of_type(typ: &Type) -> Ident {
         // Get the last segment of the path as the name
         // Might cause problems if multiple types in scope have the same name
         // TODO: Also doesnt deal with generics at all
+        // Dealing with generics might be tricky because lifetimes need to be ignored
         Type::Ptr(typ) => {
             let inner_name = name_of_type(&typ.elem);
             let mutt = if typ.mutability.is_some() { "Mut" } else { "" };
@@ -173,10 +174,10 @@ fn name_of_type(typ: &Type) -> Ident {
 /// This currently has several caveats:
 /// * Not all possible types are supported - if you have a usecase that's not supported, please file a bug
 /// * Faulty output may result from distinct types' base name being the same - use type aliases to distinguish the type names as seen by the macro. This can occur when:
-/// ** Types differ only in generic parameters
-/// ** Multiple types with the same base name are imported from different modules
+///   ** Types differ only in generic parameters
+///   ** Multiple types with the same base name are imported from different modules
 /// * Complex expressions for an array's length may be incorrectly interpreted - define a new constant to avoid this
-/// ** Additionally, literal numbers used as an array length are embedded in the name of an enum variant, meaning changing the value is a breaking change
+///   ** Additionally, literal numbers used as an array length are embedded in the name of an enum variant, meaning changing the value is a breaking change
 #[proc_macro_attribute]
 pub fn make_items(_attr: TokenStream, module: TokenStream) -> TokenStream {
     let mut output = TokenStream::new().into();
@@ -188,7 +189,7 @@ pub fn make_items(_attr: TokenStream, module: TokenStream) -> TokenStream {
         },
     ) = &mut syn::parse(module)
     {
-        append_iterator(&mut m.content.as_mut().unwrap().1);
+        append_meta_arrays(&mut m.content.as_mut().unwrap().1);
         m.to_tokens(&mut output);
     } else {
         panic!("Could not parse item as module");
@@ -197,6 +198,7 @@ pub fn make_items(_attr: TokenStream, module: TokenStream) -> TokenStream {
     output.into()
 }
 
+/// This runs the doctests in the readme
 #[cfg(doctest)]
 #[doc(hidden)]
 #[doc = include_str!("../readme.md")]
