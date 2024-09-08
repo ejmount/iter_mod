@@ -2,7 +2,7 @@ use std::collections::HashMap;
 
 use proc_macro::TokenStream;
 use quote::{format_ident, ToTokens};
-use syn::{parse_quote, Expr, Ident, Item, ItemMod, Lifetime, Type};
+use syn::{parse_quote, Expr, Ident, Item, ItemConst, ItemMod, ItemStatic, Type};
 
 #[derive(Clone, PartialEq, Eq)]
 enum ItemType {
@@ -25,11 +25,6 @@ struct MetaType {
 /// Given a module, append the arrays of consts and statics to it
 fn append_meta_arrays(items: &mut Vec<Item>) {
     let item_exprs: Vec<_> = items.iter().filter_map(get_metatype_for_item).collect();
-
-    let const_count = item_exprs
-        .iter()
-        .filter(|mt| mt.item_type == ItemType::Const)
-        .count();
 
     let type_set: HashMap<_, _> = item_exprs
         .iter()
@@ -69,8 +64,10 @@ fn append_meta_arrays(items: &mut Vec<Item>) {
         .into_iter()
         .partition(|mt| mt.item_type == ItemType::Const);
 
-    let consts_values = consts.into_iter().map(create_item_reference);
-    let static_values = statics.into_iter().map(create_item_reference);
+    let const_count = consts.len();
+
+    let consts_values = consts.into_iter().map(create_expression_for_item);
+    let static_values = statics.into_iter().map(create_expression_for_item);
 
     let cons = parse_quote! {
         pub const CONSTS: [(&'static str, Item); #const_count] = [#(#consts_values,)*];
@@ -84,16 +81,20 @@ fn append_meta_arrays(items: &mut Vec<Item>) {
     items.push(filled_enum);
 }
 
-fn create_item_reference(mt: MetaType) -> syn::Expr {
+fn create_expression_for_item(mt: MetaType) -> syn::Expr {
     let MetaType {
         name,
-        expr,
         type_name,
+        item_type,
         ..
     } = mt;
+    let value_expr: Expr = match item_type {
+        ItemType::Const => parse_quote!(#name),
+        ItemType::Static => parse_quote!(&(#name)),
+    };
     let name = name.to_string();
     parse_quote! {
-        (#name, Item::#type_name(#expr))
+        (#name, Item::#type_name(#value_expr))
     }
 }
 
