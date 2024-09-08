@@ -12,10 +12,13 @@ enum ItemType {
 
 #[derive(Clone)]
 struct MetaType {
+    // The name of the type of the item
     name: Ident,
+    // The item's type expression
     typ: Type,
+    // The syntheszed short name of the item's type
     type_name: Ident,
-    expr: Expr,
+    // Static or const
     item_type: ItemType,
 }
 
@@ -96,21 +99,17 @@ fn create_item_reference(mt: MetaType) -> syn::Expr {
 
 fn get_metatype_for_item(expr: &Item) -> Option<MetaType> {
     let (name, typ, item_type) = match expr {
-        Item::Const(expr) => (&expr.ident, *expr.ty.clone(), ItemType::Const),
-        Item::Static(expr) => (&expr.ident, *expr.ty.clone(), ItemType::Static),
+        Item::Const(ItemConst { ident, ty, .. }) => (ident, ty, ItemType::Const),
+        Item::Static(ItemStatic { ident, ty, .. }) => (ident, ty, ItemType::Static),
         _ => return None,
     };
-    let type_name = name_of_type(&typ);
-    let expr: Expr = match expr {
-        Item::Const(_) => parse_quote!(#name),
-        Item::Static(_) => parse_quote!(&(#name)),
-        _ => unreachable!(),
-    };
+    let type_name = name_of_type(typ);
+    let typ = *typ.clone();
+
     MetaType {
         name: name.clone(),
         typ,
         type_name,
-        expr,
         item_type,
     }
     .into()
