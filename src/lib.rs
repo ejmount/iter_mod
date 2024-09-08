@@ -4,11 +4,12 @@ use proc_macro::TokenStream;
 use quote::{format_ident, ToTokens};
 use syn::{parse_quote, Expr, Ident, Item, ItemConst, ItemMod, ItemStatic, Type};
 
-#[derive(Clone, PartialEq, Eq)]
+#[derive(Copy, Clone, PartialEq, Eq)]
 enum ItemType {
     Static,
     Const,
 }
+use ItemType::*;
 
 #[derive(Clone)]
 struct MetaType {
@@ -28,26 +29,17 @@ fn append_meta_arrays(items: &mut Vec<Item>) {
 
     let type_set: HashMap<_, _> = item_exprs
         .iter()
-        .cloned()
-        .map(|mt| (mt.type_name, (mt.typ, mt.item_type)))
+        .map(|mt| (&mt.type_name, (&mt.typ, &mt.item_type)))
         .collect();
 
     let filled_variants = type_set
         .into_iter()
         .map(|(name, (typ, item_type))| -> syn::Variant {
-            let typ = if let Type::Reference(mut typ) = typ {
-                let span = typ.and_token.span;
-                typ.lifetime = Some(Lifetime::new("'static", span));
-                Type::Reference(typ)
-            } else {
-                typ
-            };
-
             match item_type {
-                ItemType::Const => parse_quote! {
+                Const => parse_quote! {
                     #name(#typ)
                 },
-                ItemType::Static => parse_quote! {
+                Static => parse_quote! {
                     #name(&'static #typ)
                 },
             }
@@ -60,9 +52,8 @@ fn append_meta_arrays(items: &mut Vec<Item>) {
         }
     };
 
-    let (consts, statics): (Vec<_>, _) = item_exprs
-        .into_iter()
-        .partition(|mt| mt.item_type == ItemType::Const);
+    let (consts, statics): (Vec<_>, _) =
+        item_exprs.into_iter().partition(|mt| mt.item_type == Const);
 
     let const_count = consts.len();
 
@@ -76,9 +67,7 @@ fn append_meta_arrays(items: &mut Vec<Item>) {
         pub static STATICS: &[(&'static str, Item)] = &[#(#static_values,)*];
     };
 
-    items.push(cons);
-    items.push(statik);
-    items.push(filled_enum);
+    items.extend([cons, statik, filled_enum]);
 }
 
 fn create_expression_for_item(mt: MetaType) -> syn::Expr {
@@ -100,22 +89,25 @@ fn create_expression_for_item(mt: MetaType) -> syn::Expr {
 
 fn get_metatype_for_item(expr: &Item) -> Option<MetaType> {
     let (name, typ, item_type) = match expr {
-        Item::Const(ItemConst { ident, ty, .. }) => (ident, ty, ItemType::Const),
-        Item::Static(ItemStatic { ident, ty, .. }) => (ident, ty, ItemType::Static),
+        Item::Const(ItemConst { ident, ty, .. }) => (ident, &**ty, Const),
+        Item::Static(ItemStatic { ident, ty, .. }) => (ident, &**ty, Static),
         _ => return None,
     };
-    let type_name = name_of_type(typ);
-    let typ = *typ.clone();
+    let type_name = match item_type {
+        Const => name_of_type(typ),
+        Static => name_of_type(typ),
+    };
+    let name = name.clone();
+    let typ = typ.clone();
 
     MetaType {
-        name: name.clone(),
+        name,
         typ,
         type_name,
         item_type,
     }
     .into()
 }
-
 /// Given a type, constructs a name suitable for an enum variant representing it.
 /// For ADTs, this is called recursively to build up, e.g. the name of a tuple from component names
 /// Uppercases the return value to avoid warnings from rustfmt
