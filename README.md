@@ -10,6 +10,7 @@ mod example {
 
     const BITS: [u32; 2] = [BIT1, BIT2];
     const STRING: &'static str = "bitstring";
+    static STATIC: &'static str = "static string";
 
     pub struct BitsNStrings<'a> {
         pub mybits: [u32; 2],
@@ -26,7 +27,7 @@ fn main() {
     use example::{STATICS, CONSTS};
     use example::Item;
     assert_eq!(CONSTS.len(), 5);
-    assert_eq!(STATICS.len(), 0);
+    assert_eq!(STATICS.len(), 1);
 
     let uints = CONSTS.iter().filter(|(_, b)| matches!(b, Item::U32(_))).count();
     assert_eq!(uints, 2);

@@ -94,8 +94,11 @@ fn get_metatype_for_item(expr: &Item) -> Option<MetaType> {
         _ => return None,
     };
     let type_name = match item_type {
+        Static => {
+            let ref_type = parse_quote! { &'static #typ };
+            name_of_type(&ref_type)
+        }
         Const => name_of_type(typ),
-        Static => name_of_type(typ),
     };
     let name = name.clone();
     let typ = typ.clone();
