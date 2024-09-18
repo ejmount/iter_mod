@@ -41,10 +41,9 @@ fn main() {
         .count();
     assert_eq!(pairs, 1);
 
-    let (_, Item::BitsNStrings(struct_value)) = CONSTS
+    let Some((_, Item::BitsNStrings(struct_value))) = CONSTS
         .iter()
         .find(|(_, b)| matches!(b, Item::BitsNStrings(_)))
-        .unwrap()
     else {
         unreachable!()
     };
