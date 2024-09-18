@@ -155,11 +155,21 @@ fn name_of_type(typ: &Type) -> Ident {
                 format_ident!("{}", names.join(""))
             }
         }
-        Type::Slice(slice) => format_ident!("{}Slice", name_of_type(&(slice.elem))),
+        Type::Slice(slice) => format_ident!("{}Slice", name_of_type(&slice.elem)),
         Type::Reference(r) => format_ident!("{}Ref", name_of_type(&r.elem)),
         Type::Never(_) => unimplemented!("How did you make a Never item"),
 
-        _ => unimplemented!("Unsupported type {:?}", typ.to_token_stream(),),
+        Type::Group(_)
+        | Type::ImplTrait(_)
+        | Type::Infer(_)
+        | Type::Macro(_)
+        | Type::Paren(_)
+        | Type::TraitObject(_)
+        | Type::BareFn(_)
+        | Type::Verbatim(_) => {
+            unimplemented!("Unsupported type {:?}", typ.to_token_stream())
+        }
+        _ => unimplemented!("Unsupported future type {:?}", typ.to_token_stream()),
     };
     let mut name_str = name.to_string();
     let (begin, _) = name_str.split_at_mut(1);
