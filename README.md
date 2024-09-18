@@ -12,6 +12,7 @@ mod example {
     const STRING: &'static str = "bitstring";
     static STATIC: &'static str = "static string";
 
+    #[derive(Debug, PartialEq, Eq)]
     pub struct BitsNStrings<'a> {
         pub mybits: [u32; 2],
         pub mystring: &'a str,
@@ -24,23 +25,42 @@ mod example {
 }
 
 fn main() {
-    use example::{STATICS, CONSTS};
-    use example::Item;
+    use example::{Item, CONSTS, STATICS};
     assert_eq!(CONSTS.len(), 5);
     assert_eq!(STATICS.len(), 1);
 
-    let uints = CONSTS.iter().filter(|(_, b)| matches!(b, Item::U32(_))).count();
+    let uints = CONSTS
+        .iter()
+        .filter(|(_, b)| matches!(b, Item::U32(_)))
+        .count();
     assert_eq!(uints, 2);
 
-    let pairs = example::CONSTS.iter().filter(|(_, b)| matches!(b, Item::U32_2(_))).count();
+    let pairs = CONSTS
+        .iter()
+        .filter(|(_, b)| matches!(b, Item::U32_2(_)))
+        .count();
     assert_eq!(pairs, 1);
 
-    let struct_values = example::CONSTS.iter().filter(|(_, b)| matches!(b, Item::BitsNStrings(_))).count();
-    assert_eq!(struct_values, 1);
+    let (_, Item::BitsNStrings(struct_value)) = CONSTS
+        .iter()
+        .find(|(_, b)| matches!(b, Item::BitsNStrings(_)))
+        .unwrap()
+    else {
+        unreachable!()
+    };
+    assert_eq!(
+        *struct_value,
+        example::BitsNStrings {
+            mybits: [1, 2],
+            mystring: "bitstring"
+        }
+    );
 
-    assert_eq!("STRING", CONSTS[3].0);
+    assert_eq!(CONSTS[3].0, "STRING");
 
-    let example::Item::StrRef(s) = CONSTS[3].1 else { panic!() };
-    assert_eq!("bitstring", s);
+    let (_, Item::StrRef(s)) = CONSTS[3] else {
+        unreachable!()
+    };
+    assert_eq!(s, "bitstring");
 }
 ```

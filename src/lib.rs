@@ -182,10 +182,12 @@ fn name_of_type(typ: &Type) -> Ident {
 /// * A const array called `CONSTS`, consisting of pairs of a `&'static str` denoting the name of the constant, and a `Item` instance containing the value. The values are in source order.
 /// * A static array called `STATICS`, which is similar to `CONSTS`, except that the `Item` instances contain *references* to the corresponding static value.
 ///
+/// If items by any of these names already exist in the module, the build will fail.
+///
 /// This currently has several caveats:
-/// * Not all possible types are supported - if you have a usecase that's not supported, please file a bug
-/// * Faulty output may result from distinct types' base name being the same - use type aliases to distinguish the type names as seen by the macro. This can occur when:
-///   ** Types differ only in generic parameters
+/// * Not all possible types are supported - if you have a use-case that's not supported, please file a bug
+/// * Invalid output may result from distinct types' base name being the same - use type aliases to distinguish the type names as seen by the macro. This can occur when:
+///   ** Types differ only in generic parameters, including lifetimes
 ///   ** Multiple types with the same base name are imported from different modules
 /// * Complex expressions for an array's length may be incorrectly interpreted - define a new constant to avoid this
 ///   ** Additionally, literal numbers used as an array length are embedded in the name of an enum variant, meaning changing the value is a breaking change
