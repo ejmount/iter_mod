@@ -35,11 +35,14 @@ fn append_meta_arrays(items: &mut Vec<Item>) {
     let filled_variants = type_set
         .into_iter()
         .map(|(name, (typ, item_type))| -> syn::Variant {
+            let description = typ.to_token_stream().to_string();
             match item_type {
                 Const => parse_quote! {
+                    #[doc = #description]
                     #name(#typ)
                 },
                 Static => parse_quote! {
+                    #[doc = #description]
                     #name(&'static #typ)
                 },
             }
