@@ -2,6 +2,12 @@
 name = "iter_mod"
 version = "0.1.0"
 edition = "2021"
+authors = ["Ewan Mount"]
+description = "A macro for enumerating all the constants in a module"
+repository = "https://github.com/ejmount/iter_mod"
+license = "MIT"
+categories = ["config", "rust-patterns"]
+keywords = ["macro", "data"]
 
 [lib]
 proc-macro = true
